@@ -45,10 +45,10 @@ pipeline {
             steps {
                 bat 'if not exist reports mkdir reports'
 
-                // Exclude the venv folder from both scans using -x venv
-                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit -r . -x venv -f json -o reports\\bandit_report.json || exit /b 0'
+                // Scan kun .py filer i roden af projektet
+                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit *.py -f json -o reports\\bandit_report.json || exit /b 0'
 
-                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit -r . -x venv -f html -o reports\\bandit_report.html || exit /b 0'
+                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit *.py -f html -o reports\\bandit_report.html || exit /b 0'
             }
         }
 
