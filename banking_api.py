@@ -103,7 +103,7 @@ def transfer():
 
     # Validate the input
     if not _validate_id_or_amount(recipient_id) or not _validate_id_or_amount(amount_to_transfer):
-        return "\n------------------------------ \nInvalid. Recipient ID and Amount to transfer must be integers\n------------------------------\n"
+        return "\n------------------------------ \nInvalid. Recipient ID and Amount to transfer must be integers and greater than 0\n------------------------------\n"
 
     amount_to_transfer = int(amount_to_transfer)
 
@@ -141,7 +141,7 @@ def loan():
 
     # Validate the input
     if not _validate_id_or_amount(loan_amount):
-        return "\n------------------------------ \nInvalid. Amount to transfer must be an integer\n------------------------------\n"
+        return "\n------------------------------ \nInvalid. Amount to transfer must be an integer and greater than 0\n------------------------------\n"
 
     loan_amount = int(loan_amount)
 
@@ -182,7 +182,7 @@ def admin():
 
     # Validate the input
     if not _validate_id_or_amount(sender_id) or not _validate_id_or_amount(recipient_id) or not _validate_id_or_amount(amount_to_transfer):
-        return "\n------------------------------ \nInvalid. Sender ID, Recipient ID and Amount to transfer must be integers\n------------------------------\n"
+        return "\n------------------------------ \nInvalid. Sender ID, Recipient ID and Amount to transfer must be integers and greater than 0\n------------------------------\n"
 
     sender_id = int(sender_id)
     recipient_id = int(recipient_id)
@@ -228,9 +228,9 @@ def _validate_password(password: str) -> bool:
 
 def _validate_id_or_amount(input: str) -> bool:
     try:
-        # Check if the amount can be parsed as an integer
-        int(input)
-        return True
+        # Check if the input can be parsed as an integer and is higher than 0
+        value = int(input)
+        return value > 0
     except ValueError:
         return False
 
