@@ -1,5 +1,13 @@
 # **Software Security Assignment 1**
 
+### **Users in the Database**
+
+| Username | Password   |
+|----------|------------|
+| Admin    | yT6&vB9!qP |
+| John     | Hj4$mX2?kL |
+| Mary     | cW8*nR5@zE |
+
 ### **Install the external dependency**
 `python -m pip install -r requirements.txt`
 
