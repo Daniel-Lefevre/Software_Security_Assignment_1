@@ -16,7 +16,7 @@ pipeline {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/main']],
+                    branches: [[name: '*/vulnerabilities']],
                     userRemoteConfigs: [[url: 'https://github.com/Daniel-Lefevre/Software_Security_Assignment_1.git']]
                 ])
                 bat 'dir'
