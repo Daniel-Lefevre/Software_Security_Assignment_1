@@ -43,14 +43,13 @@ pipeline {
 
         stage('2. Security Scan') {
             steps {
-                bat """
-                    if not exist reports mkdir reports
+                bat 'if not exist reports mkdir reports'
 
-                    call venv\\Scripts\\activate.bat
+                // Run JSON scan in its own block
+                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit -r . -f json -o reports\\bandit_report.json || exit /b 0'
 
-                    venv\\Scripts\\bandit -r . -f json -o reports\\bandit_report.json || exit /b 0
-                    venv\\Scripts\\bandit -r . -f html -o reports\\bandit_report.html || exit /b 0
-                """
+                // Run HTML scan in its own block
+                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit -r . -f html -o reports\\bandit_report.html || exit /b 0'
             }
         }
 
