@@ -42,13 +42,15 @@ def login():
     if not username or not password:
         return "\n------------------------------ \nMissing username or password\n------------------------------\n"
 
+
+    # ------------ Vulnerability: SQL injection (CWE-89) the input is not sanitized or validated anymore ---------------
     # Sanitize the input (not password)
-    username = _sanitize_input(username)
+    # username = _sanitize_input(username)
 
     # Validate the input
-    if not _validate_username(username):
-        return "\n------------------------------ \nInvalid. Username must have length 3-20 and be alphanumeric characters\n------------------------------\n"
-    elif not _validate_password(password):
+    # if not _validate_username(username):
+        # return "\n------------------------------ \nInvalid. Username must have length 3-20 and be alphanumeric characters\n------------------------------\n"
+    if not _validate_password(password):
         return "\n------------------------------ \nInvalid. Password must have length 8-32 and only allows special characters: [@$!%*?&]\n------------------------------\n"
 
     # Verify user exists
@@ -66,7 +68,13 @@ def login():
 @app.route("/account", methods=["GET"])
 @jwt_required()
 def account():
-    user_id = int(get_jwt_identity())
+    # ------------ Vulnerability: Missing Authorization (CWE-862) ---------------
+    requested_id = request.args.get("user_id")
+    if requested_id:
+        user_id = int(requested_id)
+    else:
+        user_id = int(get_jwt_identity())
+
     balance = account_service.look_up_balance(user_id)
     username = account_service.get_username(user_id)
 
@@ -229,6 +237,8 @@ def _validate_password(password: str) -> bool:
 def _validate_id_or_amount(input: str) -> bool:
     try:
         # Check if the amount can be parsed as an integer
+
+        # ------------- Vulnerability: Improper Input Validation (CWE-20) Accepts negative money -------------------
         int(input)
         return True
     except ValueError:

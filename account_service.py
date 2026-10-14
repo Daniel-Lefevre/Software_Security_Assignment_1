@@ -28,10 +28,12 @@ class AccountService:
     def verify_user(self, username: str, password: str) -> tuple[int, str] | tuple[None, None]:
         sqlite_connection = sqlite3.connect(self.database_path)
         cursor = sqlite_connection.cursor()
-        query = "SELECT ID, role, password FROM Accounts WHERE username = ?"
-        cursor.execute(query, (username,))
+        # ------------ Vulnerability: SQL injection (CWE-89) ---------------
+        query = f"SELECT ID, role, password FROM Accounts WHERE username = '{username}'"
+        cursor.execute(query)
 
         result = cursor.fetchone()
+        print(f"[DEBUG] SQLi query returned: {result}")
         sqlite_connection.close()
 
         # Check if username exists otherwise return none
