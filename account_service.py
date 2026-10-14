@@ -29,7 +29,7 @@ class AccountService:
         sqlite_connection = sqlite3.connect(self.database_path)
         cursor = sqlite_connection.cursor()
         # ------------ Vulnerability: SQL injection (CWE-89) ---------------
-        query = f"SELECT ID, role, password FROM Accounts WHERE username = '{username}'"
+        query = "SELECT ID, role, password FROM Accounts WHERE username = '" + username + "'"
         cursor.execute(query)
 
         result = cursor.fetchone()
