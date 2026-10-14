@@ -1,12 +1,20 @@
 import sqlite3
 from pathlib import Path
 
+import bcrypt
+
 
 class AccountService:
     def __init__(self):
         self.database_path = Path(__file__).parent / "database.db"
 
-    def get_username(self, user_id: int):
+    def _compare_passwords(self, given_password: str, hashed_password) -> str:
+        given_password = given_password.encode("utf-8")
+        hashed_password = hashed_password.encode("utf-8")
+
+        return bcrypt.checkpw(given_password, hashed_password)
+
+    def get_username(self, user_id: int) -> str:
         sqlite_connection = sqlite3.connect(self.database_path)
         cursor = sqlite_connection.cursor()
         query = "SELECT username FROM Accounts WHERE ID = ?"
@@ -17,23 +25,31 @@ class AccountService:
 
         return username[0][0]
 
-    def verify_user(self, username: str, password: str):
+    def verify_user(self, username: str, password: str) -> tuple[int, str] | tuple[None, None]:
         sqlite_connection = sqlite3.connect(self.database_path)
         cursor = sqlite_connection.cursor()
-        query = "SELECT ID, role FROM Accounts WHERE username = ? AND password = ?"
-        cursor.execute(query, (username, password))
+        query = "SELECT ID, role, password FROM Accounts WHERE username = ?"
+        cursor.execute(query, (username,))
 
-        user_id, role = cursor.fetchone()
-
+        result = cursor.fetchone()
         sqlite_connection.close()
 
-        # If the user does not exist
-        if user_id is None:
-            return None
+        # Check if username exists otherwise return none
+        if result is None:
+            return (None, None)
 
-        return (user_id, role)
+        # unpack result because username exists
+        user_id, role, password_hash = result
 
-    def look_up_balance(self, user_id: int):
+        # Check if passwords match
+        if self._compare_passwords(password, password_hash):
+            return (user_id, role)
+
+        # Passwords does not match
+        else:
+            return (None, None)
+
+    def look_up_balance(self, user_id: int) -> int:
         sqlite_connection = sqlite3.connect(self.database_path)
         cursor = sqlite_connection.cursor()
         query = "SELECT balance FROM Accounts WHERE ID = ?"
