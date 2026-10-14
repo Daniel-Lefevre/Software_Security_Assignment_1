@@ -45,11 +45,10 @@ pipeline {
             steps {
                 bat 'if not exist reports mkdir reports'
 
-                // Run JSON scan in its own block
-                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit -r . -f json -o reports\\bandit_report.json || exit /b 0'
+                // Exclude the venv folder from both scans using -x venv
+                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit -r . -x venv -f json -o reports\\bandit_report.json || exit /b 0'
 
-                // Run HTML scan in its own block
-                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit -r . -f html -o reports\\bandit_report.html || exit /b 0'
+                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit -r . -x venv -f html -o reports\\bandit_report.html || exit /b 0'
             }
         }
 
