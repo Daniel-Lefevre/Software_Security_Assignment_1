@@ -56,11 +56,6 @@ pipeline {
 
         stage('3. Report Generation') {
             steps {
-                bat """
-                    call venv\\Scripts\\activate.bat
-                    ${PYTHON_PATH} generate_vulnerability_report.py
-                """
-
                 archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
             }
         }
