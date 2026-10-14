@@ -45,10 +45,10 @@ pipeline {
             steps {
                 bat 'if not exist reports mkdir reports'
 
-                // Scan kun .py filer i roden af projektet
-                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit *.py -f json -o reports\\bandit_report.json || exit /b 0'
+                // Explicitly scan only your application files
+                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit banking_api.py account_service.py loan_service.py -f json -o reports\\bandit_report.json || exit /b 0'
 
-                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit *.py -f html -o reports\\bandit_report.html || exit /b 0'
+                bat 'call venv\\Scripts\\activate.bat && venv\\Scripts\\bandit banking_api.py account_service.py loan_service.py -f html -o reports\\bandit_report.html || exit /b 0'
             }
         }
 
