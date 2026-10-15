@@ -3,3 +3,4 @@ Flask
 Flask-JWT-Extended
 bcrypt
 python-dotenv
+requests

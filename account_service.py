@@ -1,7 +1,11 @@
+import os
 import sqlite3
 from pathlib import Path
 
 import bcrypt
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
 
 
 class AccountService:
@@ -84,3 +88,46 @@ class AccountService:
 
         sqlite_connection.commit()
         sqlite_connection.close()
+
+
+service = AccountService()
+
+
+# HTTP Endpoints for the Account Service
+@app.route("/username/<int:user_id>", methods=["GET"])
+def get_username(user_id):
+    username = service.get_username(user_id)
+    return jsonify({"username": username})
+
+
+@app.route("/verify", methods=["POST"])
+def verify_user():
+    data = request.json
+    user_id, role = service.verify_user(data["username"], data["password"])
+    return jsonify({"user_id": user_id, "role": role})
+
+
+@app.route("/balance/<int:user_id>", methods=["GET"])
+def look_up_balance(user_id):
+    balance = service.look_up_balance(user_id)
+    return jsonify({"balance": balance})
+
+
+@app.route("/transfer", methods=["POST"])
+def transfer_funds():
+    data = request.json
+    service.transfer_funds(data["recipient_id"], data["amount"], data["user_id"])
+    return jsonify({"status": "success"})
+
+
+@app.route("/loan", methods=["POST"])
+def add_loan():
+    data = request.json
+    service.add_loan(data["user_id"], data["loan_amount"])
+    return jsonify({"status": "success"})
+
+
+if __name__ == "__main__":
+    # Run the Account Service on port 5001
+    is_debug = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
+    app.run(port=5001, debug=is_debug)
