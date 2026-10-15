@@ -1,15 +1,14 @@
 import os
 import re
 
+import requests
 from dotenv import load_dotenv
 
 # Load variables from the .env file
 load_dotenv()
 
-from account_service import AccountService
 from flask import Flask, request
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt, get_jwt_identity, jwt_required
-from loan_service import LoanService
 from markupsafe import escape
 
 app = Flask(__name__)
@@ -19,8 +18,10 @@ if not jwt_secret:
 
 app.config["JWT_SECRET_KEY"] = jwt_secret
 jwt = JWTManager(app)
-account_service = AccountService()
-loan_service = LoanService()
+
+# Define the URL for the Account Service & the Loan Service
+ACCOUNT_SERVICE_URL = "http://127.0.0.1:5001"
+LOAN_SERVICE_URL = "http://127.0.0.1:5002"
 
 
 @app.route("/", methods=["GET"])
@@ -42,19 +43,21 @@ def login():
     if not username or not password:
         return "\n------------------------------ \nMissing username or password\n------------------------------\n"
 
-
     # ------------ Vulnerability: SQL injection (CWE-89) the input is not sanitized or validated anymore ---------------
     # Sanitize the input (not password)
     # username = _sanitize_input(username)
 
     # Validate the input
     # if not _validate_username(username):
-        # return "\n------------------------------ \nInvalid. Username must have length 3-20 and be alphanumeric characters\n------------------------------\n"
+    # return "\n------------------------------ \nInvalid. Username must have length 3-20 and be alphanumeric characters\n------------------------------\n"
     if not _validate_password(password):
         return "\n------------------------------ \nInvalid. Password must have length 8-32 and only allows special characters: [@$!%*?&]\n------------------------------\n"
 
     # Verify user exists
-    (user_id, role) = account_service.verify_user(username, password)
+    response = requests.post(f"{ACCOUNT_SERVICE_URL}/verify", json={"username": username, "password": password})
+    data = response.json()
+    user_id = data.get("user_id")
+    role = data.get("role")
 
     # If user does not exist
     if user_id is None:
@@ -75,8 +78,11 @@ def account():
     else:
         user_id = int(get_jwt_identity())
 
-    balance = account_service.look_up_balance(user_id)
-    username = account_service.get_username(user_id)
+    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}")
+    balance = balance_response.json().get("balance")
+
+    username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{user_id}")
+    username = username_response.json().get("username")
 
     # Check that the user is admin or user
     claims = get_jwt()
@@ -96,7 +102,8 @@ def transfer():
         return "\n------------------------------ \nUnauthorized: Admins cannot use customer transfer endpoint. Please use /admin\n------------------------------\n"
 
     user_id = int(get_jwt_identity())
-    balance = account_service.look_up_balance(user_id)
+    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}")
+    balance = balance_response.json().get("balance")
 
     # Get the POST arguments
     recipient_id = request.form.get("id")
@@ -120,10 +127,11 @@ def transfer():
         return "\n------------------------------ \nYou do not have enough money in your account to make this transfer possible\n------------------------------\n"
 
     # Make the transfer of funds
-    account_service.transfer_funds(recipient_id, amount_to_transfer, user_id)
+    requests.post(f"{ACCOUNT_SERVICE_URL}/transfer", json={"recipient_id": recipient_id, "amount": amount_to_transfer, "user_id": user_id})
 
     # Get the new balance of the user
-    new_balance = account_service.look_up_balance(user_id)
+    new_balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}")
+    new_balance = new_balance_response.json().get("balance")
 
     return f"\n------------------------------ \nTransfer successful \n\nbalance: ${new_balance}\n------------------------------\n"
 
@@ -154,13 +162,14 @@ def loan():
     loan_amount = int(loan_amount)
 
     # Call the loan service
-    approve = loan_service.approve_loan(user_id, loan_amount)
+    loan_resp = requests.post(f"{LOAN_SERVICE_URL}/approve", json={"user_id": user_id, "loan_amount": loan_amount})
+    approve = loan_resp.json().get("approved")
 
     if not approve:
         return "\n------------------------------ \nLoan NOT approved \nThe wanted amount should be less than your balance\n------------------------------\n"
 
     # Loan has been approved, therefore add it to the user
-    account_service.add_loan(user_id, loan_amount)
+    requests.post(f"{ACCOUNT_SERVICE_URL}/loan", json={"user_id": user_id, "loan_amount": loan_amount})
 
     return f"\n------------------------------ \nLoan of ${loan_amount} has been added to your account. Only one loan per user is possible\n------------------------------\n"
 
@@ -196,20 +205,29 @@ def admin():
     recipient_id = int(recipient_id)
     amount_to_transfer = int(amount_to_transfer)
 
-    sender_username = account_service.get_username(sender_id)
-    recipient_username = account_service.get_username(recipient_id)
+    sender_username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{sender_id}")
+    sender_username = sender_username_response.json().get("username")
 
-    sender_balance_before = account_service.look_up_balance(sender_id)
-    recipient_balance_before = account_service.look_up_balance(recipient_id)
+    recipient_username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{recipient_id}")
+    recipient_username = recipient_username_response.json().get("username")
+
+    sender_balance_before_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{sender_id}")
+    sender_balance_before = sender_balance_before_response.json().get("balance")
+
+    recipient_balance_before_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{recipient_id}")
+    recipient_balance_before = recipient_balance_before_response.json().get("balance")
 
     # Check that the users have enough balance on their accounts
     if amount_to_transfer > sender_balance_before:
         return f"\n------------------------------ \n{sender_username} Does not have enough money in their account to make this transfer possible\n------------------------------\n"
 
-    account_service.transfer_funds(recipient_id, amount_to_transfer, sender_id)
+    requests.post(f"{ACCOUNT_SERVICE_URL}/transfer", json={"recipient_id": recipient_id, "amount": amount_to_transfer, "user_id": sender_id})
 
-    sender_balance_after = account_service.look_up_balance(sender_id)
-    recipient_balance_after = account_service.look_up_balance(recipient_id)
+    sender_balance_after_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{sender_id}")
+    sender_balance_after = sender_balance_after_response.json().get("balance")
+
+    recipient_balance_after_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{recipient_id}")
+    recipient_balance_after = recipient_balance_after_response.json().get("balance")
 
     return f"\n------------------------------ \nTransfer successful \n\n{sender_username}: {sender_balance_before} -> {sender_balance_after} \n{recipient_username}: {recipient_balance_before} -> {recipient_balance_after}\n------------------------------\n"
 
