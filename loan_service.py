@@ -29,7 +29,7 @@ def approve_loan():
     # Extract the token
     auth_header = {"Authorization": request.headers.get("Authorization")}
 
-    balance_resp = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header)
+    balance_resp = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header, timeout=5)
     user_balance = balance_resp.json().get("balance")
 
     # Call external library
