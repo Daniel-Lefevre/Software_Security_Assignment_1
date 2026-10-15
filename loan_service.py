@@ -30,7 +30,7 @@ def approve_loan():
     auth_header = {"Authorization": request.headers.get("Authorization")}
 
     # Get the user's balance
-    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header)
+    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header, timeout=5)
     user_balance = balance_response.json().get("balance")
 
     # Call external library

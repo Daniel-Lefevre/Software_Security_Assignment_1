@@ -53,7 +53,7 @@ def login():
         return "\n------------------------------ \nInvalid. Password must have length 8-32 and only allows special characters: [@$!%*?&]\n------------------------------\n"
 
     # Verify user exists
-    response = requests.post(f"{ACCOUNT_SERVICE_URL}/verify", json={"username": username, "password": password})
+    response = requests.post(f"{ACCOUNT_SERVICE_URL}/verify", json={"username": username, "password": password}, timeout=5)
     data = response.json()
     user_id = data.get("user_id")
     role = data.get("role")
@@ -75,9 +75,10 @@ def account():
     # Extract the JWT token
     auth_header = {"Authorization": request.headers.get("Authorization")}
 
-    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header)
+    # Get balance and username
+    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header, timeout=5)
     balance = balance_response.json().get("balance")
-    username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{user_id}", headers=auth_header)
+    username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{user_id}", headers=auth_header, timeout=5)
     username = username_response.json().get("username")
 
     # Check that the user is admin or user
@@ -101,7 +102,7 @@ def transfer():
     auth_header = {"Authorization": request.headers.get("Authorization")}
 
     user_id = int(get_jwt_identity())
-    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header)
+    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header, timeout=5)
     balance = balance_response.json().get("balance")
 
     # Get the POST arguments
@@ -126,10 +127,10 @@ def transfer():
         return "\n------------------------------ \nYou do not have enough money in your account to make this transfer possible\n------------------------------\n"
 
     # Make the transfer of funds
-    requests.post(f"{ACCOUNT_SERVICE_URL}/transfer", json={"recipient_id": recipient_id, "amount": amount_to_transfer, "user_id": user_id}, headers=auth_header)
+    requests.post(f"{ACCOUNT_SERVICE_URL}/transfer", json={"recipient_id": recipient_id, "amount": amount_to_transfer, "user_id": user_id}, headers=auth_header, timeout=5)
 
     # Get the new balance of the user
-    new_balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header)
+    new_balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header, timeout=5)
     new_balance = new_balance_response.json().get("balance")
 
     return f"\n------------------------------ \nTransfer successful \n\nbalance: ${new_balance}\n------------------------------\n"
@@ -164,14 +165,14 @@ def loan():
     loan_amount = int(loan_amount)
 
     # Call the loan service
-    loan_response = requests.post(f"{LOAN_SERVICE_URL}/approve", json={"user_id": user_id, "loan_amount": loan_amount}, headers=auth_header)
+    loan_response = requests.post(f"{LOAN_SERVICE_URL}/approve", json={"user_id": user_id, "loan_amount": loan_amount}, headers=auth_header, timeout=5)
     approve = loan_response.json().get("approved")
 
     if not approve:
         return "\n------------------------------ \nLoan NOT approved \nThe wanted amount should be less than your balance\n------------------------------\n"
 
     # Loan has been approved, therefore add it to the user
-    requests.post(f"{ACCOUNT_SERVICE_URL}/loan", json={"user_id": user_id, "loan_amount": loan_amount}, headers=auth_header)
+    requests.post(f"{ACCOUNT_SERVICE_URL}/loan", json={"user_id": user_id, "loan_amount": loan_amount}, headers=auth_header, timeout=5)
 
     return f"\n------------------------------ \nLoan of ${loan_amount} has been added to your account. Only one loan per user is possible\n------------------------------\n"
 
@@ -210,28 +211,28 @@ def admin():
     recipient_id = int(recipient_id)
     amount_to_transfer = int(amount_to_transfer)
 
-    sender_username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{sender_id}", headers=auth_header)
+    sender_username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{sender_id}", headers=auth_header, timeout=5)
     sender_username = sender_username_response.json().get("username")
 
-    recipient_username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{recipient_id}", headers=auth_header)
+    recipient_username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{recipient_id}", headers=auth_header, timeout=5)
     recipient_username = recipient_username_response.json().get("username")
 
-    sender_balance_before_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{sender_id}", headers=auth_header)
+    sender_balance_before_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{sender_id}", headers=auth_header, timeout=5)
     sender_balance_before = sender_balance_before_response.json().get("balance")
 
-    recipient_balance_before_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{recipient_id}", headers=auth_header)
+    recipient_balance_before_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{recipient_id}", headers=auth_header, timeout=5)
     recipient_balance_before = recipient_balance_before_response.json().get("balance")
 
     # Check that the users have enough balance on their accounts
     if amount_to_transfer > sender_balance_before:
         return f"\n------------------------------ \n{sender_username} Does not have enough money in their account to make this transfer possible\n------------------------------\n"
 
-    requests.post(f"{ACCOUNT_SERVICE_URL}/transfer", json={"recipient_id": recipient_id, "amount": amount_to_transfer, "user_id": sender_id}, headers=auth_header)
+    requests.post(f"{ACCOUNT_SERVICE_URL}/transfer", json={"recipient_id": recipient_id, "amount": amount_to_transfer, "user_id": sender_id}, headers=auth_header, timeout=5)
 
-    sender_balance_after_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{sender_id}", headers=auth_header)
+    sender_balance_after_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{sender_id}", headers=auth_header, timeout=5)
     sender_balance_after = sender_balance_after_response.json().get("balance")
 
-    recipient_balance_after_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{recipient_id}", headers=auth_header)
+    recipient_balance_after_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{recipient_id}", headers=auth_header, timeout=5)
     recipient_balance_after = recipient_balance_after_response.json().get("balance")
 
     return f"\n------------------------------ \nTransfer successful \n\n{sender_username}: {sender_balance_before} -> {sender_balance_after} \n{recipient_username}: {recipient_balance_before} -> {recipient_balance_after}\n------------------------------\n"
