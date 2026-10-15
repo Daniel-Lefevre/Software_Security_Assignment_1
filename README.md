@@ -1,8 +1,13 @@
 # **Software Security Assignment 1**
 
 ### **Application Purpose**
-This project Python-based banking application designed to demonstrate secure software development lifecycle (SSDLC) principles, pipeline security testing (SAST via Jenkins/Bandit), and common web vulnerabilities (such as SQL Injection, Missing Authorization and Improper Input Validation). 
+This project Python-based banking application designed to demonstrate secure software development lifecycle (SSDLC) principles, pipeline security testing (SAST via Jenkins/Bandit), and common web vulnerabilities (such as SQL Injection, Missing Authorization, Improper Input Validation and a Component Composition flaw). 
 
+### **Repository Branches**
+* **`main`**: The secure, patched version of the application.
+* **`vulnerabilities`**: The insecure version containing the 4 intentionally planted vulnerabilities.
+
+### **Architecture**
 The system is split into three decoupled components communicating over HTTP:
 1. **Banking API:** Handles user authentication, token issuance, routing, and input validation/sanitization.
 2. **Account Service:** Manages direct secure interactions with the backend SQLite database and enforces resource ownership.
