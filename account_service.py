@@ -3,9 +3,19 @@ import sqlite3
 from pathlib import Path
 
 import bcrypt
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
+from flask_jwt_extended import JWTManager, jwt_required
+
+load_dotenv()
 
 app = Flask(__name__)
+jwt_secret = os.environ.get("JWT_SECRET_KEY")
+if not jwt_secret:
+    raise ValueError("No JWT_SECRET_KEY set for Flask application. Please create a .env file.")
+
+app.config["JWT_SECRET_KEY"] = jwt_secret
+jwt = JWTManager(app)
 
 
 class AccountService:
@@ -95,6 +105,7 @@ service = AccountService()
 
 # HTTP Endpoints for the Account Service
 @app.route("/username/<int:user_id>", methods=["GET"])
+@jwt_required()
 def get_username(user_id):
     username = service.get_username(user_id)
     return jsonify({"username": username})
@@ -108,12 +119,14 @@ def verify_user():
 
 
 @app.route("/balance/<int:user_id>", methods=["GET"])
+@jwt_required()
 def look_up_balance(user_id):
     balance = service.look_up_balance(user_id)
     return jsonify({"balance": balance})
 
 
 @app.route("/transfer", methods=["POST"])
+@jwt_required()
 def transfer_funds():
     data = request.json
     service.transfer_funds(data["recipient_id"], data["amount"], data["user_id"])
@@ -121,6 +134,7 @@ def transfer_funds():
 
 
 @app.route("/loan", methods=["POST"])
+@jwt_required()
 def add_loan():
     data = request.json
     service.add_loan(data["user_id"], data["loan_amount"])

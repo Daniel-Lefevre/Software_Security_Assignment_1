@@ -71,9 +71,13 @@ def login():
 @jwt_required()
 def account():
     user_id = int(get_jwt_identity())
-    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}")
+
+    # Extract the JWT token
+    auth_header = {"Authorization": request.headers.get("Authorization")}
+
+    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header)
     balance = balance_response.json().get("balance")
-    username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{user_id}")
+    username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{user_id}", headers=auth_header)
     username = username_response.json().get("username")
 
     # Check that the user is admin or user
@@ -93,8 +97,11 @@ def transfer():
     if claims.get("role") == "admin":
         return "\n------------------------------ \nUnauthorized: Admins cannot use customer transfer endpoint. Please use /admin\n------------------------------\n"
 
+    # Extract the JWT token
+    auth_header = {"Authorization": request.headers.get("Authorization")}
+
     user_id = int(get_jwt_identity())
-    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}")
+    balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header)
     balance = balance_response.json().get("balance")
 
     # Get the POST arguments
@@ -119,10 +126,10 @@ def transfer():
         return "\n------------------------------ \nYou do not have enough money in your account to make this transfer possible\n------------------------------\n"
 
     # Make the transfer of funds
-    requests.post(f"{ACCOUNT_SERVICE_URL}/transfer", json={"recipient_id": recipient_id, "amount": amount_to_transfer, "user_id": user_id})
+    requests.post(f"{ACCOUNT_SERVICE_URL}/transfer", json={"recipient_id": recipient_id, "amount": amount_to_transfer, "user_id": user_id}, headers=auth_header)
 
     # Get the new balance of the user
-    new_balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}")
+    new_balance_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{user_id}", headers=auth_header)
     new_balance = new_balance_response.json().get("balance")
 
     return f"\n------------------------------ \nTransfer successful \n\nbalance: ${new_balance}\n------------------------------\n"
@@ -137,6 +144,9 @@ def loan():
         return "\n------------------------------ \nUnauthorized: Admins cannot use customer loan endpoint. Please use /admin\n------------------------------\n"
 
     user_id = int(get_jwt_identity())
+
+    # Extract the JWT token
+    auth_header = {"Authorization": request.headers.get("Authorization")}
 
     # Get the POST arguments
     loan_amount = request.form.get("amount")
@@ -154,14 +164,14 @@ def loan():
     loan_amount = int(loan_amount)
 
     # Call the loan service
-    loan_response = requests.post(f"{LOAN_SERVICE_URL}/approve", json={"user_id": user_id, "loan_amount": loan_amount})
+    loan_response = requests.post(f"{LOAN_SERVICE_URL}/approve", json={"user_id": user_id, "loan_amount": loan_amount}, headers=auth_header)
     approve = loan_response.json().get("approved")
 
     if not approve:
         return "\n------------------------------ \nLoan NOT approved \nThe wanted amount should be less than your balance\n------------------------------\n"
 
     # Loan has been approved, therefore add it to the user
-    requests.post(f"{ACCOUNT_SERVICE_URL}/loan", json={"user_id": user_id, "loan_amount": loan_amount})
+    requests.post(f"{ACCOUNT_SERVICE_URL}/loan", json={"user_id": user_id, "loan_amount": loan_amount}, headers=auth_header)
 
     return f"\n------------------------------ \nLoan of ${loan_amount} has been added to your account. Only one loan per user is possible\n------------------------------\n"
 
@@ -176,6 +186,9 @@ def admin():
 
     if request.method == "GET":
         return '\n------------------------------ \nHello Admin \n\nHere you can transfer money between accounts. To do this please provide the sender ID, recipient ID and the amount \n\ncurl -X POST 127.0.0.1:5000/admin -H "Authorization: Bearer YOUR_ACCESS_TOKEN" -d sender_id=SENDER_ID -d recipient_id=RECIPIENT_ID -d amount=DESIRED_AMOUNT_TO_SEND"\n------------------------------\n'
+
+    # Extract the JWT token
+    auth_header = {"Authorization": request.headers.get("Authorization")}
 
     sender_id = request.form.get("sender_id")
     recipient_id = request.form.get("recipient_id")
@@ -197,28 +210,28 @@ def admin():
     recipient_id = int(recipient_id)
     amount_to_transfer = int(amount_to_transfer)
 
-    sender_username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{sender_id}")
+    sender_username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{sender_id}", headers=auth_header)
     sender_username = sender_username_response.json().get("username")
 
-    recipient_username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{recipient_id}")
+    recipient_username_response = requests.get(f"{ACCOUNT_SERVICE_URL}/username/{recipient_id}", headers=auth_header)
     recipient_username = recipient_username_response.json().get("username")
 
-    sender_balance_before_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{sender_id}")
+    sender_balance_before_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{sender_id}", headers=auth_header)
     sender_balance_before = sender_balance_before_response.json().get("balance")
 
-    recipient_balance_before_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{recipient_id}")
+    recipient_balance_before_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{recipient_id}", headers=auth_header)
     recipient_balance_before = recipient_balance_before_response.json().get("balance")
 
     # Check that the users have enough balance on their accounts
     if amount_to_transfer > sender_balance_before:
         return f"\n------------------------------ \n{sender_username} Does not have enough money in their account to make this transfer possible\n------------------------------\n"
 
-    requests.post(f"{ACCOUNT_SERVICE_URL}/transfer", json={"recipient_id": recipient_id, "amount": amount_to_transfer, "user_id": sender_id})
+    requests.post(f"{ACCOUNT_SERVICE_URL}/transfer", json={"recipient_id": recipient_id, "amount": amount_to_transfer, "user_id": sender_id}, headers=auth_header)
 
-    sender_balance_after_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{sender_id}")
+    sender_balance_after_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{sender_id}", headers=auth_header)
     sender_balance_after = sender_balance_after_response.json().get("balance")
 
-    recipient_balance_after_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{recipient_id}")
+    recipient_balance_after_response = requests.get(f"{ACCOUNT_SERVICE_URL}/balance/{recipient_id}", headers=auth_header)
     recipient_balance_after = recipient_balance_after_response.json().get("balance")
 
     return f"\n------------------------------ \nTransfer successful \n\n{sender_username}: {sender_balance_before} -> {sender_balance_after} \n{recipient_username}: {recipient_balance_before} -> {recipient_balance_after}\n------------------------------\n"
