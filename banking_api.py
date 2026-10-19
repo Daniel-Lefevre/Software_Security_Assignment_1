@@ -47,11 +47,9 @@ def login():
     username = _sanitize_input(username)
 
     # Validate the input
-    if not _validate_username(username):
-        return "\n------------------------------ \nInvalid. Username must have length 3-20 and be alphanumeric characters\n------------------------------\n"
-    elif not _validate_password(password):
-        return "\n------------------------------ \nInvalid. Password must have length 8-32 and only allows special characters: [@$!%*?&]\n------------------------------\n"
-
+    if not _validate_username(username) or not _validate_password(password):
+        return "\n------------------------------ \nInvalid Username or Password\n------------------------------\n"
+    
     # Verify user exists
     response = requests.post(f"{ACCOUNT_SERVICE_URL}/verify", json={"username": username, "password": password}, timeout=5)
     data = response.json()
